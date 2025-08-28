@@ -7,10 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.digigoods.model.Product;
 import com.example.digigoods.repository.ProductRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
@@ -35,9 +35,6 @@ class ProductControllerIntegrationTest {
   private WebApplicationContext webApplicationContext;
 
   private MockMvc mockMvc;
-
-  @Autowired
-  private ObjectMapper objectMapper;
 
   @Autowired
   private ProductRepository productRepository;
@@ -100,5 +97,87 @@ class ProductControllerIntegrationTest {
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Nested
+  @DisplayName("Product Search Integration Tests")
+  class ProductSearchIntegrationTests {
+
+    @Test
+    @DisplayName("Should return matching products when searching with valid term")
+    void givenValidSearchTerm_whenSearchProducts_thenReturnMatchingProducts() throws Exception {
+      // Arrange
+      String searchTerm = "Product 1";
+
+      // Act & Assert
+      mockMvc.perform(get("/products/search")
+              .param("name", searchTerm)
+              .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$.length()").value(1))
+          .andExpect(jsonPath("$[0].name").value("Test Product 1"))
+          .andExpect(jsonPath("$[0].price").value(100.00))
+          .andExpect(jsonPath("$[0].stock").value(10));
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no products match search term")
+    void givenNonMatchingSearchTerm_whenSearchProducts_thenReturnEmptyList() throws Exception {
+      // Arrange
+      String searchTerm = "NonExistent";
+
+      // Act & Assert
+      mockMvc.perform(get("/products/search")
+              .param("name", searchTerm)
+              .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Should return multiple products when search term matches multiple items")
+    void givenSearchTermMatchingMultiple_whenSearchProducts_thenReturnAll() throws Exception {
+      // Arrange
+      String searchTerm = "Test Product";
+
+      // Act & Assert
+      mockMvc.perform(get("/products/search")
+              .param("name", searchTerm)
+              .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("Should perform case-insensitive search")
+    void givenLowercaseSearchTerm_whenSearchProducts_thenReturnMatchingProducts() throws Exception {
+      // Arrange
+      String searchTerm = "test product 1";
+
+      // Act & Assert
+      mockMvc.perform(get("/products/search")
+              .param("name", searchTerm)
+              .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$.length()").value(1))
+          .andExpect(jsonPath("$[0].name").value("Test Product 1"));
+    }
+
+    @Test
+    @DisplayName("Should return internal server error when search parameter is missing")
+    void givenMissingSearchParameter_whenSearchProducts_thenReturnServerError() throws Exception {
+      // Act & Assert
+      mockMvc.perform(get("/products/search")
+              .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isInternalServerError());
+    }
   }
 }

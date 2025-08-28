@@ -1,9 +1,13 @@
 package com.example.digigoods.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -98,5 +103,105 @@ class ProductServiceTest {
     // Act & Assert
     assertThrows(InsufficientStockException.class,
         () -> productService.validateAndUpdateStock(productIds));
+  }
+
+  @Nested
+  @DisplayName("Product Search Tests")
+  class ProductSearchTests {
+
+    @Test
+    @DisplayName("Should return matching products when valid search term is provided")
+    void givenValidSearchTerm_whenSearchingProductsByName_thenReturnMatchingProducts() {
+      // Arrange
+      String searchTerm = "Product";
+      List<Product> expectedProducts = List.of(product1, product2);
+      when(productRepository.findByNameContainingIgnoreCase(searchTerm.trim()))
+          .thenReturn(expectedProducts);
+
+      // Act
+      List<Product> actualProducts = productService.searchProductsByName(searchTerm);
+
+      // Assert
+      assertThat(actualProducts).isNotNull();
+      assertThat(actualProducts).hasSize(2);
+      assertThat(actualProducts).containsExactlyInAnyOrder(product1, product2);
+      verify(productRepository).findByNameContainingIgnoreCase(searchTerm.trim());
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no products match search term")
+    void givenNonMatchingSearchTerm_whenSearchingProductsByName_thenReturnEmptyList() {
+      // Arrange
+      String searchTerm = "NonExistent";
+      when(productRepository.findByNameContainingIgnoreCase(searchTerm.trim()))
+          .thenReturn(List.of());
+
+      // Act
+      List<Product> actualProducts = productService.searchProductsByName(searchTerm);
+
+      // Assert
+      assertThat(actualProducts).isNotNull();
+      assertThat(actualProducts).isEmpty();
+      verify(productRepository).findByNameContainingIgnoreCase(searchTerm.trim());
+    }
+
+    @Test
+    @DisplayName("Should trim whitespace from search term before processing")
+    void givenSearchTermWithWhitespace_whenSearchingProductsByName_thenTrimWhitespace() {
+      // Arrange
+      String searchTermWithWhitespace = "  Product  ";
+      String trimmedSearchTerm = "Product";
+      List<Product> expectedProducts = List.of(product1);
+      when(productRepository.findByNameContainingIgnoreCase(trimmedSearchTerm))
+          .thenReturn(expectedProducts);
+
+      // Act
+      List<Product> actualProducts = productService.searchProductsByName(searchTermWithWhitespace);
+
+      // Assert
+      assertThat(actualProducts).isNotNull();
+      assertThat(actualProducts).hasSize(1);
+      assertThat(actualProducts).contains(product1);
+      verify(productRepository).findByNameContainingIgnoreCase(trimmedSearchTerm);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when search term is null")
+    void givenNullSearchTerm_whenSearchingProductsByName_thenThrowIllegalArgumentException() {
+      // Arrange
+      String nullSearchTerm = null;
+
+      // Act & Assert
+      assertThatThrownBy(() -> productService.searchProductsByName(nullSearchTerm))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Search term cannot be null or empty");
+      verify(productRepository, never()).findByNameContainingIgnoreCase(anyString());
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when search term is empty")
+    void givenEmptySearchTerm_whenSearchingProductsByName_thenThrowIllegalArgumentException() {
+      // Arrange
+      String emptySearchTerm = "";
+
+      // Act & Assert
+      assertThatThrownBy(() -> productService.searchProductsByName(emptySearchTerm))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Search term cannot be null or empty");
+      verify(productRepository, never()).findByNameContainingIgnoreCase(anyString());
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when search term is only whitespace")
+    void givenWhitespaceOnlySearchTerm_whenSearchingProductsByName_thenThrowException() {
+      // Arrange
+      String whitespaceSearchTerm = "   ";
+
+      // Act & Assert
+      assertThatThrownBy(() -> productService.searchProductsByName(whitespaceSearchTerm))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Search term cannot be null or empty");
+      verify(productRepository, never()).findByNameContainingIgnoreCase(anyString());
+    }
   }
 }

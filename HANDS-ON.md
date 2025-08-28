@@ -117,15 +117,30 @@ Let's create a simple but effective testing guideline for the project.
 ```markdown
 ## Testing
 
-- New code should have corresponding unit tests.
-- Integration test of the API should be implemented using a Spring's `MockMvc` that can runs locally.
+### General Testing Requirements
+- New code should have corresponding unit tests with minimum 80% line coverage.
+- Integration test of the API should be implemented using Spring's `MockMvc` that can run locally.
 - Functional test of the API should be implemented using Postman collection that executed using `newman`.
 - Make sure the tests still pass before and after making modification to the codebase.
 - Use JUnit 5 test framework. To run the unit test suite, run `mvn test`. Make sure to run unit test suite before committing any code.
+
+### Test Structure and Naming Conventions
 - Follow the convention of Arrange-Act-Assert (AAA) for writing tests, including providing short one-liner comments that denote the sections.
-- Since we are using JUnit 5 as the test framework, please note the following when generating tests:
-  - Name the test methods more verbosely. Write the test method name using Given-When-Then format.
-  - Add `@DisplayName` annotation to all test methods and use descriptive names as the values of the annotation.
+- Name test methods using Given-When-Then format: `givenCondition_whenAction_thenExpectedResult`
+- Add `@DisplayName` annotation to all test methods with descriptive names that explain the test scenario in plain English.
+- Group related tests using `@Nested` classes with descriptive names.
+
+### Mock Usage and Assertions
+- Use `@MockBean` for Spring context integration tests and `@Mock` for unit tests.
+- Always verify mock interactions using `verify()` when the interaction is part of expected behavior.
+- Use AssertJ assertions (`assertThat()`) for better readability and error messages.
+- Test both success and failure scenarios, including edge cases and exception handling.
+
+### Spring Boot Test Annotations
+- Use `@SpringBootTest` with `@AutoConfigureTestDatabase` for full integration tests.
+- Use `@WebMvcTest` for controller layer testing with MockMvc.
+- Use `@DataJpaTest` for repository layer testing.
+- Always include `@ActiveProfiles("test")` to ensure test-specific configuration.
 ```
 
 **Step 3**: Save the guidelines

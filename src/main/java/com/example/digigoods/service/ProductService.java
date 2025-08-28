@@ -58,6 +58,20 @@ public class ProductService {
   }
 
   /**
+   * Search products by name containing the search term.
+   *
+   * @param searchTerm the search term to look for in product names
+   * @return list of products matching the search criteria
+   * @throws IllegalArgumentException if search term is null or empty
+   */
+  public List<Product> searchProductsByName(String searchTerm) {
+    if (searchTerm == null || searchTerm.trim().isEmpty()) {
+      throw new IllegalArgumentException("Search term cannot be null or empty");
+    }
+    return productRepository.findByNameContainingIgnoreCase(searchTerm.trim());
+  }
+
+  /**
    * Validate and update stock for products.
    *
    * @param productIds the list of product IDs (with duplicates for quantity)
